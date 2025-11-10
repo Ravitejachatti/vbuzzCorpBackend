@@ -1,14 +1,52 @@
 // src/services/jobService.js
 const ApiError = require("../utils/ApiError");
 const corporateSchema = require("../models/Corporate");
+const { sendCollabMessage } = require("../helper/threadUtils");
+const collabSchema = require("../models/Collaboration");
+const Collaboration = require("../models/Collaboration");
+const JobCollab = require("../models/jobCollab");
+const messageService = require("../services/messageService")
 
 exports.createJob = async (Job, recruiterId, corporateId, data) => {
-  return await Job.create({
-    ...data,
+  const { visibility, allowedUniversities = [], ...rest } = data;
+  let targetCollabs = [];
+
+  if (visibility === "Collaborative") {
+    targetCollabs = await Collaboration.find({ corporateId, status: "Accepted" });
+  } else if (visibility === "InviteOnly") {
+    targetCollabs = await Collaboration.find({
+      corporateId,
+      status: "Accepted",
+      universityId: { $in: allowedUniversities }
+    });
+  }
+
+  const job = await Job.create({
+    ...rest,
     recruiterId,
     corporateId,
-    company: corporateId.toString(),
+    visibility: visibility || "Public",
+    allowedUniversities
   });
+
+  // Notify collabs
+  for (const collab of targetCollabs) {
+    // Create pivot record
+    await JobCollab.create({
+      jobId: job._id,
+      collabId: collab._id,
+      universityUserInfo: collab.universityUserInfo
+    });
+
+    // Drop a message
+    await messageService.sendMessage(
+      collab._id,
+      { refId: recruiterId, refModel: "Recruiter" },
+      `📢 New job posted: ${job.title}\n${job.description}`
+    );
+  }
+
+  return job;
 };
 
 exports.getJobs = async (Job) => {

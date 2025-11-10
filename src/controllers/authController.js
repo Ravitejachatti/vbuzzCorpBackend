@@ -8,6 +8,7 @@ const ApiError = require("../utils/ApiError");
 exports.signupFirstRecruiter = async (req, res, next) => {
   try {
     const { corporateData, recruiterData } = req.body;
+    
     const result = await authService.signupFirstRecruiter(corporateData, recruiterData);
     res
       .status(201)
@@ -35,7 +36,9 @@ exports.signupRecruiter = async (req, res, next) => {
  */
 exports.login = async (req, res, next) => {
   try {
+    console.log("Login request received");
     const { email, password } = req.body;
+    console.log("Login attempt for email:", email);
     const result = await authService.login(email, password);
     res.status(200).json(new ApiResponse(true, "Login successful", result));
   } catch (err) {

@@ -1,5 +1,5 @@
 const Corporate = require("../models/Corporate");
-const Recruiter = require("../models/Recruiter");
+
 const ApiError = require("../utils/ApiError");
 const { hashPassword, comparePassword } = require("../utils/password");
 const getTenantModels = require("../models/tenantModels");
@@ -14,6 +14,7 @@ exports.signupFirstRecruiter = async (corporateData, recruiterData) => {
   });
 
   // Step 2: Init tenant models
+  console.log("Initializing tenant models for DB:", corporate.dbName);
   const { Recruiter } = await getTenantModels(corporate.dbName);
 
   // Step 3: Create recruiter in tenant DB
@@ -72,6 +73,7 @@ exports.login = async (email, password) => {
   if (!recruiterMeta) throw new ApiError(401, "Invalid email or password");
 
   // Switch to tenant DB
+  console.log("Recruiter found:", recruiterMeta);
   const { Recruiter } = await getTenantModels(recruiterMeta.dbName);
   const recruiter = await Recruiter.findOne({ email });
   if (!recruiter) throw new ApiError(401, "Invalid email or password");

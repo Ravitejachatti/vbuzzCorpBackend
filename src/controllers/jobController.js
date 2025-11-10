@@ -1,13 +1,22 @@
 const getTenantModels = require("../models/tenantModels");
 const jobService = require("../services/jobService");
 const ApiResponse = require("../utils/ApiResponse");
+const JobCollab = require("../models/jobCollab");
 
 // Create job (Recruiter)
 exports.createJob = async (req, res, next) => {
   try {
     console.log("Creating job for DB:", req.user.dbName);
     const { Job } = await getTenantModels(req.user.dbName);
-    const job = await jobService.createJob(Job, req.user.id, req.user.corporateId, req.body);
+    // const { JobCollab } = await getTenantModels(req.user.dbName); // Global DB for pivot
+
+    const job = await jobService.createJob(
+      Job,
+      req.user.id,
+      req.user.corporateId,
+      req.body
+    );
+
     res.status(201).json(new ApiResponse(true, "Job created", job));
   } catch (err) {
     next(err);
