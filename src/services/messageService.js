@@ -1,52 +1,33 @@
-// src/services/messageService.js
 const Message = require("../models/Message");
-const Collaboration = require("../models/Collaboration");
+const Thread = require("../models/Thread");
 const ApiError = require("../utils/ApiError");
 
-/**
- * Send a message in a collaboration
- */
-exports.sendMessage = async (collabId, sender, body, attachments = []) => {
-  console.log(
-    `Sending message in collab ${collabId} from ${sender.refModel} with ID ${sender.refId}`
-  )
-  const collab = await Collaboration.findById(collabId);
-  if (!collab) throw new ApiError(404, "Collaboration not found");
-  if (collab.status !== "Accepted") throw new ApiError(400, "Collaboration not active");
+exports.sendMessage = async (threadId, sender, body, attachments) => {
+  const thread = await Thread.findById(threadId);
+  if (!thread) throw new ApiError(404, "Thread not found");
 
-  const message = await Message.create({
-    collabId,
-    sender,
+  const msg = await Message.create({
+    threadId,
+    sender: { refId: sender.id, refModel: sender.role },
     body,
     attachments
   });
 
-  return message;
+  // Update thread metadata
+  thread.lastMessage = { body, senderId: sender.id, createdAt: msg.createdAt };
+  thread.lastMessageAt = msg.createdAt;
+  await thread.save();
+
+  return msg;
 };
 
-/**
- * Get all messages in a collaboration (paginated)
- */
-exports.getMessages = async (collabId, page = 1, limit = 20) => {
-  const skip = (page - 1) * limit;
-
-  const messages = await Message.find({ collabId })
-    .sort({ createdAt: 1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
-
-  return messages;
+exports.getMessages = async (threadId) => {
+  return await Message.find({ threadId }).sort({ createdAt: 1 }).lean();
 };
 
-/**
- * Mark all messages in collab as read by user
- */
-exports.markAsRead = async (collabId, userId) => {
-  console.log(`Marking messages as read in collab ${collabId} for user ${userId}`);
+exports.markAsRead = async (threadId, userId) => {
   await Message.updateMany(
-    { collabId, "sender.refId": { $ne: userId }, status: { $ne: "Read" } },
+    { threadId, "sender.refId": { $ne: userId }, status: { $ne: "Read" } },
     { $set: { status: "Read" } }
   );
-  return true;
 };

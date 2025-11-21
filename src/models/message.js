@@ -1,20 +1,14 @@
-// src/models/Message.js
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  collabId: { type: mongoose.Schema.Types.ObjectId, ref: "Collaboration", required: true },
-  jobId: { type: mongoose.Schema.Types.ObjectId, ref: "Job"},
-
+  threadId: { type: mongoose.Schema.Types.ObjectId, ref: "Thread", required: true },
   sender: {
     refId: String,
-    refModel: { type: String, enum: ["Recruiter","UniversityUser"], required: true }
+    refModel: { type: String, enum: ["Recruiter","PlacementCell","UniversityDept"] }
   },
-
   body: { type: String, required: true },
   attachments: [String],
-
   status: { type: String, enum: ["Sent","Delivered","Read"], default: "Sent" }
 }, { timestamps: true });
 
-
-module.exports = mongoose.models.Message || mongoose.model("Message", messageSchema);
+module.exports = mongoose.model("Message", messageSchema);
